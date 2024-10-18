@@ -4,6 +4,7 @@
 #include "shaders.h"
 #include <vector>
 #include <math.h>
+#include <gl
 void frameBuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
