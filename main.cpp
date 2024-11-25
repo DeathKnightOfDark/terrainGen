@@ -26,12 +26,12 @@ void frameBuffer_size_callback(GLFWwindow* window, int width, int height)
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 20.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 20.0f, 3.0f));
 void processInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -50,7 +50,7 @@ float yaw = -90.0f;
 float pitch = 0.0f;
 float fov = 45.0f;
 bool firstMouse = true;
-glm::vec3 lightPos(1.2f, 5.0f, 1.0f);
+glm::vec3 lightPos(1.2f, 2.0f, 3.0f);
 
 void mouse_callback(GLFWwindow* window, double xPosIn, double yPosIn)
 {
@@ -177,10 +177,14 @@ int main()
     unsigned char* data = stbi_load("iceland_heightmap.png", &x, &y, &channels, 0);
 #endif
 #if (DRAWING_CUR==NOISE_HEIGHTMAP)
-    unsigned char* data = stbi_load("image.png", &x, &y, &channels, 0);
+    unsigned char* data = stbi_load("noiseTexture2.png", &x, &y, &channels, 0);
+    //unsigned char* data = stbi_load("height.jpg", &x, &y, &channels, 0);
 #endif
+    std::cout << "x=" << x << std::endl;
+    std::cout << "y=" << y << std::endl;
+    std::cout << "channels=" << channels << std::endl;
     std::vector<float> terrainPoints = terrainGen::genPoints(data, x, y, channels, coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
-    
+    std::cout << "points number=" << terrainPoints.size()/3<< std::endl;
     std::vector<int> terrainIndices = terrainGen::getIndices(x, y);
      
     ////////////////////////////////////////////
@@ -232,6 +236,11 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    
+    int trisNumber = terrainIndices.size();
+    terrainPoints.clear();
+    terrainIndices.clear();
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -272,7 +281,7 @@ int main()
         model = glm::scale(model, glm::vec3(10.0f, 5.0f, 10.0f));
 #endif
         
-        //model = glm::rotate(model, deltaTime* glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        model = glm::rotate(model, float(glfwGetTime()), glm::vec3(0.0f, 1.0f, 0.0f));
         lightingShader.setMat4("model", model);
 
         // render the cube
@@ -281,7 +290,7 @@ int main()
 
         //lightingShader.use();
         glBindVertexArray(terrainVAO);
-        glDrawElements(GL_TRIANGLES, terrainIndices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, trisNumber, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         // also draw the lamp object

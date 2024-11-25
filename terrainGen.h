@@ -22,6 +22,8 @@ namespace terrainGen
 		float xUnit = std::fabs((rightDownPoint.x - leftUpPoint.x) / (float)pointsWidth);
 		float yUnit = std::fabs((leftUpPoint.y - rightDownPoint.y) / (float)pointsHeight);
 		float lasVal = 0.0f;
+		float yScale = 64.0f / 256.0f;
+		float yShift = 1.0f;
 		for (int i{ 0 }; i < pointsHeight; i++)
 		{
 			for (int j{ 0 }; j < pointsWidth; j++)
@@ -32,15 +34,14 @@ namespace terrainGen
 				{
 					if ((i < pointsHeight) && (j < pointsWidth))
 					{
-						int pos = i * (j * colorImageChannelNumber) + j * colorImageChannelNumber;
+						//int pos = j + (pointsWidth * i) * colorImageChannelNumber;
+						int pos = j + (pointsWidth * i) * colorImageChannelNumber;
 						float toPut = 0.0f;
 						if (pos < dataSize)
 						{
-							toPut = (float)(imageData[pos]) / 255.0f;
-							//if (imageData[pos] < 128) toPut = toPut * (-1.0f);
-							//toPut = lasVal * (1.0f - 0.9f) + toPut * 0.9f;
-							//toPut = toPut / 1.0f;
-							toPut = convertVal(toPut, coordsStruct{ 0.0f, 1.0f }, coordsStruct{ -0.5f, 0.5f });
+							//toPut = (float)(imageData[pos]) / 255.0f;
+							toPut = ((float)(imageData[pos]) / 255.0f) * yScale;
+							//toPut = convertVal(toPut, coordsStruct{ 0.0f, 1.0f }, coordsStruct{ -0.7f, 0.7f });
 						}
 
 
@@ -55,7 +56,7 @@ namespace terrainGen
 
 				else
 				{
-					returnResult.push_back(0.0f);
+					//returnResult.push_back(0.0f);
 				}
 				returnResult.push_back(leftUpPoint.y - ((float)(i)*yUnit));
 			}
