@@ -1,19 +1,24 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <cstdlib>
 #include <iostream>;
 #include "shader.h"
 #include <vector>
 #include <math.h>
 //#include "filesystem.h"
 //#include "shaderClass.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_PERLIN_IMPLEMENTATION
+#include "stb_perlin.h"
+
 #include "camera.h"
 #include "terrainGen.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+
 void frameBuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -177,13 +182,19 @@ int main()
     unsigned char* data = stbi_load("iceland_heightmap.png", &x, &y, &channels, 0);
 #endif
 #if (DRAWING_CUR==NOISE_HEIGHTMAP)
-    unsigned char* data = stbi_load("noiseTexture2.png", &x, &y, &channels, 0);
+    unsigned char* data = stbi_load("noiseTexture.png", &x, &y, &channels, 0);
     //unsigned char* data = stbi_load("height.jpg", &x, &y, &channels, 0);
 #endif
     std::cout << "x=" << x << std::endl;
     std::cout << "y=" << y << std::endl;
     std::cout << "channels=" << channels << std::endl;
-    std::vector<float> terrainPoints = terrainGen::genPoints(data, x, y, channels, coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
+    //std::vector<float> terrainPoints = terrainGen::genPoints(data, x, y, channels, coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
+    x = 128;
+    y = 128;
+    std::vector<float> terrainPoints = terrainGen::genPointsUsingPerlin( x, y,  coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
+    terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
+    //terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
+    //terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
     std::cout << "points number=" << terrainPoints.size()/3<< std::endl;
     std::vector<int> terrainIndices = terrainGen::getIndices(x, y);
      
@@ -278,10 +289,10 @@ int main()
         model = glm::scale(model, glm::vec3(100.0f, 10.0f, 100.0f));
 #endif 
 #if (DRAWING_CUR==NOISE_HEIGHTMAP)
-        model = glm::scale(model, glm::vec3(10.0f, 5.0f, 10.0f));
+        model = glm::scale(model, glm::vec3(25.0f, 15.0f, 25.0f));
 #endif
         
-        model = glm::rotate(model, float(glfwGetTime()), glm::vec3(0.0f, 1.0f, 0.0f));
+        //model = glm::rotate(model, float(glfwGetTime()), glm::vec3(0.0f, 1.0f, 0.0f));
         lightingShader.setMat4("model", model);
 
         // render the cube
