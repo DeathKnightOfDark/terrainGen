@@ -17,7 +17,7 @@
 
 #include "camera.h"
 #include "terrainGen.h"
-
+#include "terrainGenerator.h"
 
 void frameBuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -76,7 +76,10 @@ void mouse_callback(GLFWwindow* window, double xPosIn, double yPosIn)
 	camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-
+glm::vec3 getNormale(glm::vec3 startPoint, glm::vec3 pointOne, glm::vec3 pointTwo)
+{
+    return glm::normalize(glm::cross((pointOne - startPoint), (pointTwo - startPoint)));
+}
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(static_cast<float>(yoffset));
@@ -129,6 +132,26 @@ int main()
     Shader lightingShader("colors.vs", "colors.fs");
     Shader lightCubeShader("light_cube.vs", "light_cube.fs");
 
+
+    glm::vec3 pointOne{0.0f, 0.0f, 0.0f}, pointTwo(1.0f, 0.0f, 0.0f), pointThree{ 0.0f, 0.0f, -1.0f }, pointFour{ 1.0f, 0.0f, -1.0f };
+    glm::vec3 normOne = getNormale(pointOne, pointTwo, pointThree);
+    glm::vec3 normTwo = getNormale(pointTwo, pointOne, pointThree);
+    glm::vec3 normThree = getNormale(pointThree, pointOne, pointTwo);
+    std::cout << "first pass" << std::endl;
+   // glm::vec3 normThree = glm::normalize(glm::cross((pointTwo - pointThree), (pointOne - pointThree)));
+    std::cout << "normale one = (" << normOne.x << ";" << normOne.y << ";" << normOne.z << ")" << std::endl;
+    std::cout << "normale two = (" << normTwo.x << ";" << normTwo.y << ";" << normTwo.z << ")" << std::endl;
+    std::cout << "normale three = (" << normThree.x << ";" << normThree.y << ";" << normThree.z << ")" << std::endl;
+
+    normOne = getNormale(pointOne,  pointThree,pointTwo );
+    normTwo = getNormale(pointTwo,  pointThree, pointOne);
+    normThree = getNormale(pointThree,  pointTwo, pointOne);
+    std::cout << "second pass" << std::endl;
+    // glm::vec3 normThree = glm::normalize(glm::cross((pointTwo - pointThree), (pointOne - pointThree)));
+    std::cout << "normale one = (" << normOne.x << ";" << normOne.y << ";" << normOne.z << ")" << std::endl;
+    std::cout << "normale two = (" << normTwo.x << ";" << normTwo.y << ";" << normTwo.z << ")" << std::endl;
+    std::cout << "normale three = (" << normThree.x << ";" << normThree.y << ";" << normThree.z << ")" << std::endl;
+    
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -178,7 +201,7 @@ int main()
     ////////////////////////////////////////////
     int x, y, channels;
 #if (DRAWING_CUR==ICEFIELD_HEIGHTMAP)
-    
+
     unsigned char* data = stbi_load("iceland_heightmap.png", &x, &y, &channels, 0);
 #endif
 #if (DRAWING_CUR==NOISE_HEIGHTMAP)
@@ -191,11 +214,20 @@ int main()
     //std::vector<float> terrainPoints = terrainGen::genPoints(data, x, y, channels, coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
     x = 128;
     y = 128;
-    std::vector<float> terrainPoints = terrainGen::genPointsUsingPerlin( x, y,  coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
-    terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
+    //std::vector<float> terrainPoints = terrainGen::genPointsUsingPerlin(x, y, coordsStruct{ -0.5f,0.5f }, coordsStruct{ 0.5f, -0.5f });
     //terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
     //terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
-    std::cout << "points number=" << terrainPoints.size()/3<< std::endl;
+    //terrainGen::makeSimpleTestErosion(terrainPoints, 0.02f);
+
+    terrainInstance testTerInst;
+    testTerInst.GenEmptyPoints(x);
+    testTerInst.setXcoordsAndZCoords(terrainCoordPoind2d{ -1.0f, 1.0f }, terrainCoordPoind2d{ 1.0f, -1.0f });
+    testTerInst.generateYCoords(63344210000);
+    testTerInst.genNormales();
+    //testTerInst.erodeWithRain(30);
+    //std::vector<float> testTerInstPoints = testTerInst.getPointsAsOneDimensionalVector();
+    std::vector<float> testTerInstPoints = testTerInst.getPointsAndNormalesAsOneDimensionalVector();
+    //std::cout << "points number=" << terrainPoints.size()/3<< std::endl;
     std::vector<int> terrainIndices = terrainGen::getIndices(x, y);
      
     ////////////////////////////////////////////
@@ -238,19 +270,23 @@ int main()
     glBindVertexArray(terrainVAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)* terrainPoints.size(), terrainPoints.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)* testTerInstPoints.size(), testTerInstPoints.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)* terrainIndices.size(), terrainIndices.data(), GL_STATIC_DRAW);
 
     //glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    //normale
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
     int trisNumber = terrainIndices.size();
-    terrainPoints.clear();
+    //terrainPoints.clear();
     terrainIndices.clear();
     // render loop
     // -----------
