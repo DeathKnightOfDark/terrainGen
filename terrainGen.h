@@ -1,7 +1,7 @@
 #pragma once
 #ifndef TERRAINGEN_H
 #define TERRAINGEN_H 
-#include <vector>
+/*#include <vector>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -175,6 +175,6 @@ namespace terrainGen
 		}
 		return returnResult;
 	}
-}
+}*/
 #endif // !TERRAINGEN_H
 
