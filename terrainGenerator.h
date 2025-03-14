@@ -1,17 +1,18 @@
 #pragma once
-#ifndef  TERRAINGENERATOR_H
 #include <vector>
 #include <cmath>
 #include <map>
 #include <functional>
-
-#ifndef STB_PERLIN_IMPLEMENTATION
-#define STB_PERLIN_IMPLEMENTATION
-#include "stb_perlin.h"
-#endif 
-
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#ifndef  TERRAINGENERATOR_H
+
 #define TERRAINGENERATOR_H
+
+
+typedef std::function<float(float, float, float, int, int, int, int)> perlinSeedFunctionType;
+typedef std::function<float(float, float, float, float, float, float, float)> perlinGenerationFunctionType;
 
 
 struct terrainCoordPoind2d
@@ -31,12 +32,12 @@ struct Particle {
 class terrainInstance
 {
 public:
-	inline terrainInstance()
+	 terrainInstance()
 	{
 		numberOfPointsOnOneDimension = 0;
 		dim = glm::vec2(numberOfPointsOnOneDimension, numberOfPointsOnOneDimension);
 	}
-	void inline GenEmptyPoints(int numberOfPoints)
+	void  GenEmptyPoints(int numberOfPoints)
 	{
 		terrainPoints.clear();
 		terrainIndices.clear();
@@ -65,7 +66,7 @@ public:
 		}
 	}
 
-	void inline setXcoordsAndZCoords(terrainCoordPoind2d leftUpPoint, terrainCoordPoind2d rightDownPoint)
+	void  setXcoordsAndZCoords(terrainCoordPoind2d leftUpPoint, terrainCoordPoind2d rightDownPoint)
 	{
 		float xUnit = std::fabs((rightDownPoint.x - leftUpPoint.x) / (float)numberOfPointsOnOneDimension);
 		float yUnit = std::fabs((leftUpPoint.y - rightDownPoint.y) / (float)numberOfPointsOnOneDimension);
@@ -79,7 +80,7 @@ public:
 		}
 	}
 
-	void inline generateYCoords(int generatorSeed, float powerCoeff, float yShift, std::function<float(float,float,float,int,int,int,int)> func1, std::function<float(float,float,float,float,float,float,float)> func2)
+	void  generateYCoords(int generatorSeed, float powerCoeff, float yShift, perlinSeedFunctionType func1, perlinGenerationFunctionType func2)
 	{
 		float max = 0.0f, min = 0.0f;
 		for (int i = 0; i < terrainPoints.size(); i++)
@@ -123,7 +124,7 @@ public:
 	}
 
 
-	void inline genNormales()
+	void  genNormales()
 	{
 		
 		for (int i = 0; i < dim.y - 1; i++)
@@ -151,7 +152,7 @@ public:
 			}
 		}
 	}
-	std::vector<float> inline getPointsAndNormalesAsOneDimensionalVector()
+	std::vector<float>  getPointsAndNormalesAsOneDimensionalVector()
 	{
 		std::vector<float> retRes;
 		for (int i = 0; i < numberOfPointsOnOneDimension; i++)
@@ -172,7 +173,7 @@ public:
 		return retRes;
 	}
 
-	glm::vec3 inline surfaceNormal(int i, int j)
+	glm::vec3  surfaceNormal(int i, int j)
 	{
 		if (((i - 1 >= 0) && (j - 1 >= 0)) && ((i + 1 < numberOfPointsOnOneDimension) && (j + 1 < numberOfPointsOnOneDimension)))
 		{
@@ -190,7 +191,7 @@ public:
 		else return glm::vec3(0.0);
 	}
 
-	void inline erode(int cycles)
+	void  erode(int cycles)
 	{
 		srand(time(NULL));
 		for (int i = 0; i < cycles; i++)
@@ -220,8 +221,8 @@ public:
 			}
 		}
 	}
-	glm::vec2 inline get_dim() { return dim; }
-	const glm::vec3 inline getPoint(int xPos, int yPos)
+	glm::vec2  get_dim() { return dim; }
+	const glm::vec3  getPoint(int xPos, int yPos)
 	{
 		glm::vec3 retRes = glm::vec3(0.0, 0.0, 0.0);
 		
@@ -239,10 +240,10 @@ public:
 
 	
 
-	inline glm::vec2 getDim() { return this->dim; }
+	 glm::vec2 getDim() { return this->dim; }
 	
 
-	static std::vector<int> inline genIndices(int pointsWidth, int pointsHeight)
+	static std::vector<int>  genIndices(int pointsWidth, int pointsHeight)
 	{
 
 		std::vector<int> returnResult;
@@ -264,15 +265,15 @@ public:
 
 		return returnResult;
 	}
-	static std::vector<int> inline genIndices(terrainInstance* inputInstance)
+	static std::vector<int>  genIndices(terrainInstance* inputInstance)
 	{
 		return terrainInstance::genIndices(inputInstance->getDim().x, inputInstance->getDim().y);
 	}
-	const std::vector<int> inline getIndices()
+	const std::vector<int>  getIndices()
 	{
 		return std::vector<int>(terrainIndices.begin(), terrainIndices.end());
 	}
-	const std::vector<GLfloat> inline getTerrainPointsAsVector()
+	const std::vector<GLfloat>  getTerrainPointsAsVector()
 	{
 		std::vector<GLfloat> retResult;
 		for (int i = 0; i < dim.y; i++)
@@ -286,7 +287,7 @@ public:
 		}
 		return retResult;
 	}
-	const std::vector<GLfloat> inline getTerrainNormalesAsVector()
+	const std::vector<GLfloat>  getTerrainNormalesAsVector()
 	{
 		std::vector<GLfloat> retResult;
 		for (int i = 0; i < dim.y; i++)
@@ -301,8 +302,8 @@ public:
 		}
 		return retResult;
 	}
-	const bool inline getIsReadyToUpdate() { return isReadyToUpdate; }
-	void inline setIsReadyToUpdate(bool input) { isReadyToUpdate = input; }
+	const bool  getIsReadyToUpdate() { return isReadyToUpdate; }
+	void  setIsReadyToUpdate(bool input) { isReadyToUpdate = input; }
 private: 
 	std::vector<std::vector<glm::vec3>> terrainPoints;
 	std::vector<int> terrainIndices;

@@ -1,3 +1,6 @@
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -10,19 +13,20 @@
 #include <math.h>
 #include <functional>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include <thread>
 #include <mutex>
 
-#ifndef STB_PERLIN_IMPLEMENTATION
+
 #define STB_PERLIN_IMPLEMENTATION
 #include "stb_perlin.h"
-#endif 
+
+
+
 #include "camera.h"
 #include "terrainGenerator.h"
 #include "terrainModel.h"
-#include "ParticleSystem.h"
+#include "ui_items.h"
+
 void frameBuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -92,6 +96,21 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
+
+
+
+void generationFunction(terrainInstance* terInstLink)
+{
+    static int seed = 1441212;
+    std::function<float(float, float, float, int, int, int, int)> func1 = stb_perlin_noise3_seed;
+    std::function<float(float, float, float, float, float, float, float)> func2 = stb_perlin_ridge_noise3;
+    terInstLink->GenEmptyPoints(512);
+    terInstLink->setXcoordsAndZCoords(terrainCoordPoind2d{ -1.0f, 1.0f }, terrainCoordPoind2d{ 1.0f, -1.0f });
+    terInstLink->generateYCoords(1441212, 0.9, 0.4,func1, func2);
+    terInstLink->genNormales();
+    seed += 10;
+
+}
 int main()
 {    // glfw: initialize and configure
         // ------------------------------
@@ -119,9 +138,11 @@ int main()
     glfwSetFramebufferSizeCallback(window, frameBuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
-
+    
+    GLFWcursor *cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+    glfwSetCursor(window, cursor);
     // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -137,9 +158,20 @@ int main()
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_STENCIL_TEST);
     
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+
+    ImGui_ImplOpenGL3_Init("#version 130");
     // build and compile our shader zprogram
     // ------------------------------------
     Shader lightingShader("colors.vs", "colors.fs");
+    Shader screenShader("shaders/framebuffershader.vs", "shaders/framebuffershader.fs");
    
     camera.Yaw = -123.0f;
     camera.Pitch = -35.0f;
@@ -153,17 +185,18 @@ int main()
     x = 512;
     y = 512;
     
-    std::function<float(float, float, float, int, int, int, int)> func1 = stb_perlin_noise3_seed;
-    std::function<float(float, float, float, float, float, float, float)> func2 = stb_perlin_ridge_noise3;
-
+   // std::function<float(float, float, float, int, int, int, int)> func1 = stb_perlin_noise3_seed;
+   // std::function<float(float, float, float, float, float, float, float)> func2 = stb_perlin_ridge_noise3;
+    
     terrainInstance testTerInst;
-    testTerInst.GenEmptyPoints(x);
-    testTerInst.setXcoordsAndZCoords(terrainCoordPoind2d{ -1.0f, 1.0f }, terrainCoordPoind2d{ 1.0f, -1.0f });
-    testTerInst.generateYCoords(1441212, 0.9, 0.4,func1, func2);
-    testTerInst.genNormales();
+    generationFunction(&testTerInst);
+    //testTerInst.GenEmptyPoints(x);
+    //testTerInst.setXcoordsAndZCoords(terrainCoordPoind2d{ -1.0f, 1.0f }, terrainCoordPoind2d{ 1.0f, -1.0f });
+    //testTerInst.generateYCoords(1441212, 0.9, 0.4,func1, func2);
+    //testTerInst.genNormales();
     
     //testTerInst.erode(20);
-
+    //generationFunction(testTerInst);
     terrainModel testTerrainModel(&testTerInst);
     testTerrainModel.setup();
     
@@ -179,6 +212,8 @@ int main()
 
     //framebufferTry
    
+    screenShader.use();
+    screenShader.setInt("screenTexture", 0);
     unsigned int framebuffer;
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -218,6 +253,18 @@ int main()
         1.0f, -1.0f, 1.0f, 0.0f, 
         1.0f, 1.0f, 1.0f, 1.0f
     };
+    unsigned int framebufferVao, frameBufferVbo;
+    glGenVertexArrays(1, &framebufferVao);
+    glGenBuffers(1, &frameBufferVbo);
+    glBindVertexArray(framebufferVao);
+    glBindBuffer(GL_ARRAY_BUFFER,frameBufferVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    bool demoWindow = true;
+    float defdd = 0.0;
     while (!glfwWindowShouldClose(window))
     {
         // per-frame time logic
@@ -229,8 +276,9 @@ int main()
         // input
         // -----
         processInput(window);
-        
-
+       
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glEnable(GL_DEPTH_TEST);
        
         // render
         // ------
@@ -238,10 +286,6 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        //pSystem.moveParticles(0.0003f*deltaTime);
-        //pSystem.render(projection, view);
-        
-        // be sure to activate shader when setting uniforms/drawing objects
         
        
         
@@ -259,12 +303,17 @@ int main()
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::scale(model, glm::vec3(25.0f, 15.0f, 25.0f));
-        model = glm::rotate(model, glm::radians(angle), glm::vec3(0, 1, 0));
+        model = glm::rotate(model, glm::radians(360*defdd), glm::vec3(0, 1, 0));
        // model = glm::translate(model, glm::vec3(0.0, 10.0, 0.0));
         lightingShader.setMat4("model", model);
         testTerrainModel.render();
         
-        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        screenShader.use();
+        glBindVertexArray(framebufferVao);
+        glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         
        
 #if (DRAWING_CUR==ICEFIELD_HEIGHTMAP) 
@@ -291,8 +340,43 @@ int main()
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
+        
         glfwPollEvents();
+
+        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
+        {
+            ImGui_ImplGlfw_Sleep(10);
+            continue;
+        }
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        
+        ImGui::NewFrame();
+
+        //ImGui::SetNextWindowPos(ImVec2{ 0.0,0.0 },0,ImVec2{0.0,0.0});
+        //ImGui::ShowDemoWindow(&demoWindow);
+        //ImGui::Begin("Hello, world!");
+        //ImGui::Text("This is some useful text");
+        //std::string drawingTime = "drawing time:" + std::to_string(deltaTime);
+        //ImGui::Text(drawingTime.c_str());
+        //ImGui::Checkbox("Demo Window", &demoWindow);
+        //ImGui::SliderFloat("Slider demo", &defdd, 0.0, 1.0);
+        //ImGui::End();
+        
+        //drawGenerationWindowUI(&defdd);
+
+        ImGui::SetNextWindowPos(ImVec2{ 0.0,200.0 }, 0, ImVec2{ 0.0,0.0 });
+        ImGui::Begin("Another one");
+        ImGui::Text("keklol");
+        ImGui::End();
+        ImGui::Render();
+        int display_w, display_h;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window);
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:

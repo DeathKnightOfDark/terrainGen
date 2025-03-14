@@ -1,7 +1,8 @@
 #pragma once
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
+#ifndef TERRAIN_MODEL_H
+#define TERRAIN_MODEL_H
+
+
 #ifndef  TERRAINGENERATOR_H
 #include "terrainGenerator.h"
 #endif // ! TERRAINGENERATOR_H
@@ -116,3 +117,4 @@ private:
 
 	
 };
+#endif // !TERRAIN_MODEL_H
